@@ -105,6 +105,13 @@ bouncer/
   uninstall.php          # Removes all bouncer_* options when the plugin is deleted
 ```
 
+## Open points
+
+Planned for a future release, not built yet:
+
+- **Preview tab.** A fifth settings tab that shows the Bouncer page as visitors will see it, including unsaved changes on the Content and Display tabs, without turning the gate on.
+- **Design the page in the block editor.** Build the visitor page with the WordPress block editor instead of the fixed template, so it can carry your own layout, images and branding. The current template stays the default.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
