@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/PHP-8.1%2B-777bb4" alt="PHP 8.1+">
 </p>
 
-<!-- Screenshots: settings page and the visitor-facing page. Add images to .github/ and link them here. -->
+<p align="center"><img src=".github/screenshot-coming-soon.jpg" alt="The Bouncer page in Coming Soon mode: a large COMING SOON heading, a one-line message and an HTTP 200 status note" width="800"></p>
 
 ## Why Bouncer
 
@@ -56,6 +56,8 @@ Bouncer does not update itself from wordpress.org (`Update URI: false`). To upda
 
 ## Settings
 
+The settings page has four tabs: **Status**, **Access**, **Content** and **Display**. A notice at the top shows whether Bouncer is on and what visitors see.
+
 ### Status
 
 | Option | Description |
@@ -70,7 +72,7 @@ Bouncer does not update itself from wordpress.org (`Update URI: false`). To upda
 |---|---|
 | New Link Duration | How long newly created links stay active: 1h, 6h, 24h, 3d, 7d, 30d or no expiry. Does not affect existing links. |
 | Preview Links | Table of all named preview links. Create, copy, deactivate or delete individual links. |
-| Allowed IPs | One IP per line. These visitors always see the live site, whatever the Bouncer status. |
+| Allowed IPs | One IP per line. These visitors always see the live site, whatever the Bouncer status. The tab shows your current IP with a button to add it. |
 
 **Link status**
 
