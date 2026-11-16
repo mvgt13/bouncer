@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Bouncer
-Version: 2.6.0
+Version: 2.7.1
 Plugin URI: https://github.com/mvgt13/bouncer
 Update URI: false
 Author: VOGET.CO
@@ -17,6 +17,20 @@ Domain Path: /languages
 
 if (!defined('ABSPATH')) exit;
 
+// Close XML-RPC while the gate is on, as early as a plugin can: xmlrpc.php defines
+// XMLRPC_REQUEST before WordPress loads plugins, so this exits before the theme,
+// the remaining plugins, init and any password check (system.multicall can carry
+// hundreds of login attempts per request). A gated site has no use for XML-RPC;
+// sites that need it (Jetpack, mobile app) tick "Keep XML-RPC open".
+if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST && get_option('bouncer_enabled') && !get_option('bouncer_allow_xmlrpc')) {
+    status_header(403);
+    nocache_headers();
+    header('Content-Type: text/plain; charset=utf-8');
+    header('X-Robots-Tag: noindex, nofollow');
+    echo "XML-RPC is closed while this site is not public.\n";
+    exit;
+}
+
 register_activation_hook(__FILE__, function () {
     if (false === get_option('bouncer_preview_expiry')) {
         update_option('bouncer_preview_expiry', DAY_IN_SECONDS);
@@ -30,7 +44,7 @@ if (!class_exists('BOUNCER')) {
 
     class BOUNCER
     {
-        const VERSION = '2.6.0';
+        const VERSION = '2.7.1';
 
         private string $plugin_version = self::VERSION;
         private string $plugin_url  = '';
@@ -38,7 +52,7 @@ if (!class_exists('BOUNCER')) {
 
         function __construct()
         {
-            define('BOUNCER_VERSION', '2.6.0');
+            define('BOUNCER_VERSION', self::VERSION);
             define('BOUNCER_SITE_URL', site_url());
             define('BOUNCER_URL', $this->plugin_url());
             define('BOUNCER_PATH', $this->plugin_path());
@@ -48,7 +62,9 @@ if (!class_exists('BOUNCER')) {
         function plugin_includes()
         {
             add_action('plugins_loaded', array($this, 'plugins_loaded_handler'));
-            add_action('template_redirect', array($this, 'bouncer_template_redirect'));
+            // Priority 1: run before core's redirect_canonical (10), which would otherwise answer a
+            // gated visitor's ?author=1 with a 301 to /author/<login>/ and ?p=N with the post slug.
+            add_action('template_redirect', array($this, 'bouncer_template_redirect'), 1);
             add_action('admin_menu', array($this, 'add_admin_menu'));
             add_action('admin_init', array($this, 'register_settings'));
             add_action('admin_bar_menu', array($this, 'add_admin_bar_menu'), 100);
@@ -60,12 +76,65 @@ if (!class_exists('BOUNCER')) {
             add_action('wp_enqueue_scripts',    array($this, 'enqueue_adminbar_scripts'));
             add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_page_scripts'));
             add_action('rest_api_init', array($this, 'register_rest_routes'));
+            // Late priority: after application-password checks (90), before cookie/nonce checks (100).
+            add_filter('rest_authentication_errors', array($this, 'rest_gate'), 99);
+            add_filter('wp_headers', array($this, 'filter_wp_headers'));
         }
 
         function plugins_loaded_handler()
         {
             load_plugin_textdomain('bouncer', false, dirname(plugin_basename(__FILE__)) . '/languages/');
             $this->maybe_migrate_single_token();
+            $this->maybe_migrate_generic_text();
+        }
+
+        // Bouncer 1.0.0 ("bouncer-generic") kept the page copy in bouncer_text.
+        // Carry it over once so a site switched to this plugin keeps its wording.
+        // bouncer_text itself is left in place so switching back still works.
+        function maybe_migrate_generic_text()
+        {
+            if (false !== get_option('bouncer_text_en')) return;
+            $old = get_option('bouncer_text');
+            if (is_string($old) && $old !== '') {
+                update_option('bouncer_text_en', $old);
+            }
+        }
+
+        // ----- API gates (only while the gate is on) -----
+
+        // Anonymous REST requests get a 401 while gated: the API would otherwise serve the
+        // site's posts, pages and user list (handy for brute-forcing logins) past the gate.
+        // Logged-in users (cookie or application password) and bypass visitors (preview
+        // link, allowed IP) keep access, so previews with forms or blocks still work.
+        function rest_gate($result)
+        {
+            if (!empty($result)) return $result;   // already authenticated (true) or already an error
+            if (!get_option('bouncer_enabled') || get_option('bouncer_allow_rest')) return $result;
+            if (is_user_logged_in() || $this->is_bypass_allowed()) return $result;
+
+            return new WP_Error(
+                'bouncer_closed',
+                __('This site is not public yet. The REST API is available to logged-in users only.', 'bouncer'),
+                array('status' => 401)
+            );
+        }
+
+        // Don't advertise the (closed) XML-RPC endpoint while gated.
+        function filter_wp_headers($headers)
+        {
+            if (get_option('bouncer_enabled') && !get_option('bouncer_allow_xmlrpc')) {
+                unset($headers['X-Pingback']);
+            }
+            return $headers;
+        }
+
+        // An address from a private or reserved range is almost always a proxy, load
+        // balancer or container gateway, not the visitor. Allowlisting it opens the gate
+        // for everyone who comes through that proxy.
+        function is_private_ip($ip)
+        {
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) return false;
+            return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
         }
 
         // Migrate from the old single-token options to the new token list (runs once).
@@ -233,6 +302,8 @@ if (!class_exists('BOUNCER')) {
             // for crawlers). Belt-and-braces alongside the <meta robots> tag in
             // the template.
             header('X-Robots-Tag: noindex, nofollow', true);
+            // WordPress has already sent a feed's Content-Type (application/rss+xml) by now.
+            header('Content-Type: text/html; charset=' . get_bloginfo('charset'), true);
 
             include_once('bouncer-template.php');
             exit();
@@ -264,6 +335,8 @@ if (!class_exists('BOUNCER')) {
             register_setting('bouncer_settings', 'bouncer_email',          ['sanitize_callback' => 'sanitize_email']);
             register_setting('bouncer_settings', 'bouncer_website_url',    ['sanitize_callback' => 'esc_url_raw']);
             register_setting('bouncer_settings', 'bouncer_allowed_ips',    ['sanitize_callback' => 'sanitize_textarea_field']);
+            register_setting('bouncer_settings', 'bouncer_allow_xmlrpc',   ['sanitize_callback' => 'absint']);
+            register_setting('bouncer_settings', 'bouncer_allow_rest',     ['sanitize_callback' => 'absint']);
             register_setting('bouncer_settings', 'bouncer_show_dark_mode', ['sanitize_callback' => 'absint']);
             register_setting('bouncer_settings', 'bouncer_show_website_btn', ['sanitize_callback' => 'absint']);
             register_setting('bouncer_settings', 'bouncer_bilingual',      ['sanitize_callback' => 'absint']);
@@ -342,7 +415,8 @@ if (!class_exists('BOUNCER')) {
                                 <input type="checkbox" name="bouncer_enabled" id="bouncer_enabled" value="1" <?php checked(1, get_option('bouncer_enabled')); ?> />
                                 <p class="description">
                                     <?php _e('When on, every front-end request from a visitor who is not logged in and not on the bypass list is served the Bouncer page instead of the real site.', 'bouncer'); ?><br>
-                                    <?php _e('Still get through while it is on: logged-in users, IPs on the Allowed IPs list, and anyone holding a valid preview link. While it is on, Bouncer also serves a strict <code>robots.txt</code> (<code>Disallow: /</code>) and sends <code>noindex</code> on every response so the gated site cannot be indexed.', 'bouncer'); ?>
+                                    <?php _e('Still get through while it is on: logged-in users, IPs on the Allowed IPs list, and anyone holding a valid preview link. While it is on, Bouncer also serves a strict <code>robots.txt</code> (<code>Disallow: /</code>) and sends <code>noindex</code> on every response so the gated site cannot be indexed.', 'bouncer'); ?><br>
+                                    <?php _e('The REST API and XML-RPC are closed to visitors too (see the Access tab).', 'bouncer'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -487,9 +561,35 @@ if (!class_exists('BOUNCER')) {
                                         '<code id="bouncer-my-ip">' . esc_html($my_ip) . '</code>'
                                     );
                                     ?>
+                                    <?php if (!$this->is_private_ip($my_ip)) : ?>
                                     <button type="button" class="button button-small" id="bouncer-add-my-ip"><?php esc_html_e('Add to list', 'bouncer'); ?></button>
+                                    <?php endif; ?>
                                 </p>
+                                <?php if ($this->is_private_ip($my_ip)) : ?>
+                                <div class="notice notice-warning inline"><p>
+                                    <?php esc_html_e('This is a private or internal address, so WordPress is probably seeing a proxy, load balancer or container gateway instead of you. Allowing it would let everyone behind that proxy past the gate. Use a preview link instead, or configure the web server to pass on the real visitor IP.', 'bouncer'); ?>
+                                </p></div>
                                 <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?php _e('APIs While Closed', 'bouncer'); ?></th>
+                            <td>
+                                <fieldset>
+                                    <label for="bouncer_allow_rest">
+                                        <input type="checkbox" name="bouncer_allow_rest" id="bouncer_allow_rest" value="1" <?php checked(1, get_option('bouncer_allow_rest')); ?> />
+                                        <?php _e('Keep the REST API open for everyone', 'bouncer'); ?>
+                                    </label><br>
+                                    <label for="bouncer_allow_xmlrpc">
+                                        <input type="checkbox" name="bouncer_allow_xmlrpc" id="bouncer_allow_xmlrpc" value="1" <?php checked(1, get_option('bouncer_allow_xmlrpc')); ?> />
+                                        <?php _e('Keep XML-RPC open', 'bouncer'); ?>
+                                    </label>
+                                </fieldset>
+                                <p class="description">
+                                    <?php _e('While Bouncer is on, the REST API (<code>/wp-json/</code>) answers visitors who are not logged in with 401, and <code>xmlrpc.php</code> answers everyone with 403. Without this, both would serve content and accept login attempts past the gate. Logged-in users, application passwords, allowed IPs and preview links still reach the REST API.', 'bouncer'); ?><br>
+                                    <?php _e('Tick a box only if something needs that API while the site is closed, for example Jetpack or the WordPress mobile app (XML-RPC), or an outside service reading the REST API. When Bouncer is off, both are left to WordPress.', 'bouncer'); ?>
+                                </p>
                             </td>
                         </tr>
                     </table>

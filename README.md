@@ -13,7 +13,8 @@
 ### Done right for search engines
 - **Two modes with the correct status code.** *Maintenance* answers `503 Service Unavailable` with a `Retry-After` header, so search engines keep your rankings and come back later. *Coming Soon* answers `200` for a site that hasn't launched yet.
 - **Nothing gets indexed while the gate is on.** Bouncer serves a strict `robots.txt` (`Disallow: /`), sends `X-Robots-Tag: noindex, nofollow` and adds a `noindex` meta tag.
-- **Out of the way when it's off.** `robots.txt` and SEO go back to WordPress or your SEO plugin.
+- **Closed means closed.** While the gate is on, the REST API answers 401 to visitors and `xmlrpc.php` answers 403, so the site's content, user list and login can't be reached around the gate.
+- **Out of the way when it's off.** `robots.txt`, SEO, the REST API and XML-RPC go back to WordPress or your SEO plugin.
 
 ### Show the site before launch
 - **Named preview links.** One link per client or team, each with its own expiry (1 hour to 30 days, or none), open count and last-opened time. Deactivate a link to cut access but keep the record, or delete it.
@@ -65,7 +66,8 @@ The settings page has four tabs: **Status**, **Access**, **Content** and **Displ
 |---|---|
 | New Link Duration | How long newly created links stay active: 1h, 6h, 24h, 3d, 7d, 30d or no expiry. Does not affect existing links. |
 | Preview Links | Table of all named preview links. Create, copy, deactivate or delete individual links. |
-| Allowed IPs | One IP per line. These visitors always see the live site, whatever the Bouncer status. The tab shows your current IP with a button to add it. |
+| Allowed IPs | One IP per line. These visitors always see the live site, whatever the Bouncer status. The tab shows your current IP with a button to add it. If that IP is a private address (a proxy or container gateway), it shows a warning instead of the button. |
+| APIs While Closed | While Bouncer is on, the REST API answers 401 to visitors who aren't logged in and XML-RPC answers 403. Logged-in users, application passwords, allowed IPs and preview links still reach the REST API. Tick "Keep the REST API open for everyone" or "Keep XML-RPC open" only if something needs that API while the site is closed (Jetpack, the WordPress mobile app, an outside service). |
 
 **Link status**
 

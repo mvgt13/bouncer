@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1]
+
+### Fixed
+
+- A gated site still gave away login names and post slugs. WordPress's canonical redirect ran before the gate, so `?author=1` got a 301 to `/author/<login>/` and `?p=N` a 301 to the post's slug. The gate now runs first (`template_redirect` priority 1).
+- The gate page served for `/feed/` was labelled `application/rss+xml`. It now always sends `text/html`.
+
+## [2.7.0]
+
+### Added
+
+- While the gate is on, `xmlrpc.php` answers 403 for everyone. The check runs as soon as the plugin file loads, before the theme, later plugins and any login attempt. Before this, a gated site still accepted XML-RPC login attempts.
+- While the gate is on, the REST API (`/wp-json/` and `?rest_route=`) answers 401 to visitors who are not logged in. Before this, it served the gated site's posts, pages and user list. Logged-in users, application passwords, allowed IPs and preview-link holders keep access.
+- Access tab: "APIs While Closed" with two opt-outs, "Keep the REST API open for everyone" and "Keep XML-RPC open" (options `bouncer_allow_rest`, `bouncer_allow_xmlrpc`).
+- Upgrading from Bouncer 1.0.0: its page text (`bouncer_text`) is copied to Main Text once, so the page keeps its wording.
+
+### Changed
+
+- While the gate is on and XML-RPC is closed, the `X-Pingback` header is no longer sent.
+- Access tab: when the IP WordPress sees is a private or internal address (a proxy or container gateway), Bouncer shows a warning and hides "Add to list". Allowing that address would let everyone behind the proxy past the gate.
+- `BOUNCER_VERSION` now comes from the class constant, so the version lives in two places (header and `VERSION`).
+
 ## [2.6.0]
 
 ### Added

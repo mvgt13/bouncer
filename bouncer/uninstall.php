@@ -11,6 +11,8 @@ $options = [
     'bouncer_website_url',
     'bouncer_retry_after',
     'bouncer_allowed_ips',
+    'bouncer_allow_xmlrpc',
+    'bouncer_allow_rest',
     'bouncer_show_dark_mode',
     'bouncer_show_website_btn',
     'bouncer_bilingual',
@@ -21,6 +23,8 @@ $options = [
     'bouncer_preview_token_expires',
     'bouncer_preview_use_count',
     'bouncer_preview_last_used',
+    // Legacy option from Bouncer 1.0.0 ("bouncer-generic"):
+    'bouncer_text',
 ];
 
 foreach ($options as $option) {
