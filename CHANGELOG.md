@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The Retry After row is only shown in Maintenance mode.
-
 - Renamed from "WP Bouncer" to "Bouncer" in all docs; the plugin header already used "Bouncer". The repository moves to `mvgt13/bouncer`.
 - Plugin header: new description, `Plugin URI` points to the GitHub repository, added `License: GPL-2.0-or-later` and `License URI`.
 - `LICENSE` now holds the unmodified GPL v2 text so GitHub detects the license. The "or later" grant is stated in the plugin header and README.
