@@ -2,13 +2,15 @@
 /*
 Plugin Name: Bouncer
 Version: 2.5.6
-Plugin URI: https://voget.co
+Plugin URI: https://github.com/mvgt13/bouncer
 Update URI: false
 Author: VOGET.CO
 Author URI: https://voget.co
-Description: Maintenance mode and coming soon plugin with IP/token bypass, proper HTTP status codes, and optional branding features.
+Description: Maintenance mode and coming soon pages for WordPress. Correct 503/200 status codes, stays out of search engines while gated, and named preview links with expiry and open tracking.
 Requires at least: 6.6
 Requires PHP: 8.1
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: bouncer
 Domain Path: /languages
 */
