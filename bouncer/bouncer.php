@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Bouncer
-Version: 2.5.6
+Version: 2.6.0
 Plugin URI: https://github.com/mvgt13/bouncer
 Update URI: false
 Author: VOGET.CO
@@ -30,7 +30,7 @@ if (!class_exists('BOUNCER')) {
 
     class BOUNCER
     {
-        const VERSION = '2.5.6';
+        const VERSION = '2.6.0';
 
         private string $plugin_version = self::VERSION;
         private string $plugin_url  = '';
@@ -38,7 +38,7 @@ if (!class_exists('BOUNCER')) {
 
         function __construct()
         {
-            define('BOUNCER_VERSION', '2.5.6');
+            define('BOUNCER_VERSION', '2.6.0');
             define('BOUNCER_SITE_URL', site_url());
             define('BOUNCER_URL', $this->plugin_url());
             define('BOUNCER_PATH', $this->plugin_path());
@@ -283,14 +283,59 @@ if (!class_exists('BOUNCER')) {
                 0                   => __('No expiry', 'bouncer'),
             );
             $date_format = get_option('date_format') . ' ' . get_option('time_format');
+
+            // Tabs are client-side panels inside ONE form: every field is posted on save.
+            // Separate forms per tab would make options.php blank the other tabs' options.
+            $tabs = array(
+                'status'  => __('Status', 'bouncer'),
+                'access'  => __('Access', 'bouncer'),
+                'content' => __('Content', 'bouncer'),
+                'display' => __('Display', 'bouncer'),
+            );
+            $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'status';
+            if (!isset($tabs[$active_tab])) $active_tab = 'status';
+            $hidden_unless = function ($slug) use ($active_tab) {
+                return $slug === $active_tab ? '' : ' hidden';
+            };
+
+            $enabled = (bool) get_option('bouncer_enabled');
+            $mode    = get_option('bouncer_mode', 'maintenance');
+            $my_ip   = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
             ?>
-            <div class="wrap">
-                <h1><?php _e('Bouncer Settings', 'bouncer'); ?></h1>
-                <form method="post" action="options.php">
+            <div class="wrap bouncer-settings">
+                <h1><?php esc_html_e('Bouncer', 'bouncer'); ?></h1>
+
+                <div class="notice inline <?php echo $enabled ? 'notice-warning' : 'notice-info'; ?> bouncer-status-notice">
+                    <p>
+                        <?php if (!$enabled) : ?>
+                            <strong><?php esc_html_e('Bouncer is off.', 'bouncer'); ?></strong>
+                            <?php esc_html_e('Everyone sees the live site.', 'bouncer'); ?>
+                        <?php elseif ($mode === 'coming_soon') : ?>
+                            <strong><?php esc_html_e('Bouncer is on.', 'bouncer'); ?></strong>
+                            <?php esc_html_e('Visitors see the Coming Soon page (HTTP 200). Logged-in users, allowed IPs and preview links see the live site.', 'bouncer'); ?>
+                        <?php else : ?>
+                            <strong><?php esc_html_e('Bouncer is on.', 'bouncer'); ?></strong>
+                            <?php esc_html_e('Visitors see the Maintenance page (HTTP 503). Logged-in users, allowed IPs and preview links see the live site.', 'bouncer'); ?>
+                        <?php endif; ?>
+                    </p>
+                </div>
+
+                <nav class="nav-tab-wrapper bouncer-tabs" aria-label="<?php esc_attr_e('Bouncer settings sections', 'bouncer'); ?>">
+                    <?php foreach ($tabs as $slug => $label) : ?>
+                        <a href="<?php echo esc_url(add_query_arg('tab', $slug, admin_url('options-general.php?page=bouncer'))); ?>"
+                           class="nav-tab<?php echo $slug === $active_tab ? ' nav-tab-active' : ''; ?>"
+                           data-tab="<?php echo esc_attr($slug); ?>"
+                           <?php echo $slug === $active_tab ? 'aria-current="page"' : ''; ?>
+                        ><?php echo esc_html($label); ?></a>
+                    <?php endforeach; ?>
+                </nav>
+
+                <form method="post" action="options.php" id="bouncer-settings-form">
                     <?php settings_fields('bouncer_settings'); ?>
 
-                    <h2><?php _e('Status', 'bouncer'); ?></h2>
-                    <table class="form-table">
+                    <div class="bouncer-tab-panel" data-tab="status"<?php echo $hidden_unless('status'); ?>>
+                    <p class="bouncer-tab-intro"><?php esc_html_e('Turn the gate on or off, and choose how search engines should treat the site while it is closed.', 'bouncer'); ?></p>
+                    <table class="form-table" role="presentation">
                         <tr>
                             <th><label for="bouncer_enabled"><?php _e('Enable Bouncer', 'bouncer'); ?></label></th>
                             <td>
@@ -315,7 +360,7 @@ if (!class_exists('BOUNCER')) {
                                 </p>
                             </td>
                         </tr>
-                        <tr>
+                        <tr id="bouncer-retry-after-row">
                             <th><label for="bouncer_retry_after"><?php _e('Retry After', 'bouncer'); ?></label></th>
                             <td>
                                 <input type="number" name="bouncer_retry_after" id="bouncer_retry_after" value="<?php echo esc_attr(get_option('bouncer_retry_after', 3600)); ?>" class="small-text" min="60" />
@@ -328,10 +373,11 @@ if (!class_exists('BOUNCER')) {
                             </td>
                         </tr>
                     </table>
+                    </div>
 
-                    <h2><?php _e('Access Control', 'bouncer'); ?></h2>
-
-                    <table class="form-table">
+                    <div class="bouncer-tab-panel" data-tab="access"<?php echo $hidden_unless('access'); ?>>
+                    <p class="bouncer-tab-intro"><?php esc_html_e('Who gets past the Bouncer page while it is on. Logged-in users always do.', 'bouncer'); ?></p>
+                    <table class="form-table" role="presentation">
                         <tr>
                             <th><?php _e('Preview Links', 'bouncer'); ?></th>
                             <td>
@@ -419,7 +465,8 @@ if (!class_exists('BOUNCER')) {
                                 <?php endif; ?>
 
                                 <p class="description">
-                                    <?php _e('<strong>Deactivate</strong> blocks access immediately — the link stops working but stays in the list so you have a record. <strong>Delete</strong> removes it permanently.', 'bouncer'); ?>
+                                    <?php _e('<strong>Deactivate</strong> blocks access immediately — the link stops working but stays in the list so you have a record. <strong>Delete</strong> removes it permanently.', 'bouncer'); ?><br>
+                                    <?php _e('Creating, deactivating and deleting links takes effect right away. You do not need to click <em>Save Changes</em> for them.', 'bouncer'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -429,14 +476,28 @@ if (!class_exists('BOUNCER')) {
                                 <textarea name="bouncer_allowed_ips" id="bouncer_allowed_ips" rows="5" class="large-text" placeholder="192.168.1.1&#10;10.0.0.1"><?php echo esc_textarea(get_option('bouncer_allowed_ips', '')); ?></textarea>
                                 <p class="description">
                                     <?php _e('One IPv4 or IPv6 address per line — exact matches only, no ranges or CIDR. Requests coming from these addresses skip the gate and see the live site.', 'bouncer'); ?><br>
-                                    <?php _e('Matched against the connecting IP (<code>REMOTE_ADDR</code>). Behind a reverse proxy or CDN that is the proxy\'s address, not the visitor\'s, so prefer preview links there. Your own current IP is shown by "What is my IP" services; a dynamic home connection can change without notice.', 'bouncer'); ?>
+                                    <?php _e('Matched against the connecting IP (<code>REMOTE_ADDR</code>). Behind a reverse proxy or CDN that is the proxy\'s address, not the visitor\'s, so prefer preview links there. A dynamic home connection can change its IP without notice.', 'bouncer'); ?>
                                 </p>
+                                <?php if ($my_ip) : ?>
+                                <p class="description">
+                                    <?php
+                                    printf(
+                                        /* translators: %s: the IP address WordPress sees for the current request */
+                                        esc_html__('Your current IP as WordPress sees it: %s', 'bouncer'),
+                                        '<code id="bouncer-my-ip">' . esc_html($my_ip) . '</code>'
+                                    );
+                                    ?>
+                                    <button type="button" class="button button-small" id="bouncer-add-my-ip"><?php esc_html_e('Add to list', 'bouncer'); ?></button>
+                                </p>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     </table>
+                    </div>
 
-                    <h2><?php _e('Content', 'bouncer'); ?></h2>
-                    <table class="form-table">
+                    <div class="bouncer-tab-panel" data-tab="content"<?php echo $hidden_unless('content'); ?>>
+                    <p class="bouncer-tab-intro"><?php esc_html_e('The text visitors see on the Bouncer page.', 'bouncer'); ?></p>
+                    <table class="form-table" role="presentation">
                         <tr>
                             <th><label for="bouncer_heading"><?php _e('Heading', 'bouncer'); ?></label></th>
                             <td>
@@ -474,9 +535,11 @@ if (!class_exists('BOUNCER')) {
                             </td>
                         </tr>
                     </table>
+                    </div>
 
-                    <h2><?php _e('Display', 'bouncer'); ?></h2>
-                    <table class="form-table">
+                    <div class="bouncer-tab-panel" data-tab="display"<?php echo $hidden_unless('display'); ?>>
+                    <p class="bouncer-tab-intro"><?php esc_html_e('Optional extras on the Bouncer page.', 'bouncer'); ?></p>
+                    <table class="form-table" role="presentation">
                         <tr>
                             <th><?php _e('Dark Mode Toggle', 'bouncer'); ?></th>
                             <td>
@@ -501,6 +564,7 @@ if (!class_exists('BOUNCER')) {
                             </td>
                         </tr>
                     </table>
+                    </div>
 
                     <?php submit_button(); ?>
                 </form>
@@ -602,8 +666,72 @@ if (!class_exists('BOUNCER')) {
             $nonce_deact  = wp_create_nonce('bouncer_deactivate_nonce');
             $nonce_delete = wp_create_nonce('bouncer_delete_nonce');
             ?>
+            <style>
+                .bouncer-settings .bouncer-status-notice { margin: 16px 0 8px; }
+                .bouncer-settings .bouncer-tab-intro { margin: 16px 0 0; color: #50575e; font-size: 14px; }
+            </style>
             <script>
             document.addEventListener('DOMContentLoaded', function () {
+
+                // Tabs: one form, panels toggled client-side. The URL (?tab=) and the
+                // form's _wp_http_referer follow the active tab, so after Save Changes
+                // or an AJAX reload the same tab opens again.
+                var tabLinks = document.querySelectorAll('.bouncer-tabs .nav-tab');
+                var panels   = document.querySelectorAll('.bouncer-tab-panel');
+                var form     = document.getElementById('bouncer-settings-form');
+                var referer  = form ? form.querySelector('input[name="_wp_http_referer"]') : null;
+                function showTab(slug) {
+                    tabLinks.forEach(function (a) {
+                        var on = a.dataset.tab === slug;
+                        a.classList.toggle('nav-tab-active', on);
+                        if (on) { a.setAttribute('aria-current', 'page'); } else { a.removeAttribute('aria-current'); }
+                    });
+                    panels.forEach(function (p) { p.hidden = p.dataset.tab !== slug; });
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('tab', slug);
+                    url.searchParams.delete('settings-updated');
+                    history.replaceState(null, '', url);
+                    if (referer) referer.value = url.pathname + url.search;
+                }
+                tabLinks.forEach(function (a) {
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        showTab(a.dataset.tab);
+                    });
+                });
+                // A field that fails browser validation on a hidden tab would block
+                // saving with no visible message: switch to its tab first.
+                if (form) {
+                    form.addEventListener('invalid', function (e) {
+                        var panel = e.target.closest('.bouncer-tab-panel');
+                        if (panel && panel.hidden) showTab(panel.dataset.tab);
+                    }, true);
+                }
+
+                // Retry After only applies to Maintenance mode
+                var modeSelect = document.getElementById('bouncer_mode');
+                var retryRow   = document.getElementById('bouncer-retry-after-row');
+                function syncRetryRow() {
+                    if (retryRow) retryRow.style.display = modeSelect.value === 'maintenance' ? '' : 'none';
+                }
+                if (modeSelect && retryRow) {
+                    syncRetryRow();
+                    modeSelect.addEventListener('change', syncRetryRow);
+                }
+
+                // Add the current IP to the Allowed IPs list
+                var addIpBtn = document.getElementById('bouncer-add-my-ip');
+                if (addIpBtn) {
+                    addIpBtn.addEventListener('click', function () {
+                        var ip    = document.getElementById('bouncer-my-ip').textContent.trim();
+                        var field = document.getElementById('bouncer_allowed_ips');
+                        var lines = field.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+                        if (lines.indexOf(ip) === -1) lines.push(ip);
+                        field.value = lines.join('\n');
+                        addIpBtn.textContent = '<?php echo esc_js(__('Added. Save Changes to apply.', 'bouncer')); ?>';
+                        addIpBtn.disabled = true;
+                    });
+                }
 
                 // Copy link buttons (per row)
                 document.addEventListener('click', function (e) {

@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0]
+
+### Added
+
+- Settings page split into four tabs: Status, Access, Content and Display. The active tab stays open after Save Changes and after creating or deleting a preview link.
+- Status notice at the top of the settings page: on or off, and what visitors see.
+- Access tab shows the current IP as WordPress sees it, with an "Add to list" button for Allowed IPs.
+- A short intro line on each tab, and a note that preview link changes apply without Save Changes.
+
 ### Changed
+
+- The Retry After row is only shown in Maintenance mode.
 
 - Renamed from "WP Bouncer" to "Bouncer" in all docs; the plugin header already used "Bouncer". The repository moves to `mvgt13/bouncer`.
 - Plugin header: new description, `Plugin URI` points to the GitHub repository, added `License: GPL-2.0-or-later` and `License URI`.
