@@ -8,37 +8,30 @@
   <img src="https://img.shields.io/badge/PHP-8.1%2B-777bb4" alt="PHP 8.1+">
 </p>
 
-<p align="center"><img src=".github/screenshot-coming-soon.jpg" alt="The Bouncer page in Coming Soon mode: a large COMING SOON heading, a one-line message and an HTTP 200 status note" width="800"></p>
-
-## Why Bouncer
-
-Most maintenance plugins show a pretty page and stop there. Bouncer also gets the HTTP side right:
-
-- **Maintenance Mode** answers with `503 Service Unavailable` and a `Retry-After` header, so search engines keep your existing rankings and come back later.
-- **Coming Soon** answers with `200`, for a site that hasn't launched yet.
-- **Nothing gets indexed while the gate is on.** In both modes Bouncer serves a strict `robots.txt` (`Disallow: /`), sends `X-Robots-Tag: noindex, nofollow` and adds a `noindex` meta tag.
-- **When Bouncer is off, it stays out of the way.** `robots.txt` and SEO go back to WordPress or your SEO plugin.
-
-And it makes it easy to show the site to clients before launch:
-
-- **Named preview links.** One link per person or team, each with its own expiry, open count and last-opened time.
-- **IP allowlist** for your office or agency network.
-- Logged-in users always see the live site.
-
 ## Features
 
-- Two modes: Maintenance (503) and Coming Soon (200)
-- Configurable `Retry-After` interval
-- Named preview links
-  - Durations per link: 1h / 6h / 24h / 3d / 7d / 30d / no expiry
-  - **Deactivate** cuts access immediately and keeps the link in the list for your records
-  - **Delete** removes the link and its stats permanently
-- IP allowlist
-- Admin bar indicator with one-click on/off
-- Editable heading, main text, optional secondary text (bilingual sites, short summaries) and contact email
-- Contact email is obfuscated in the HTML source to deter spam harvesters
-- Optional dark mode toggle and website button on the visitor page
-- No account, no tracking, no upsells
+### Done right for search engines
+- **Two modes with the correct status code.** *Maintenance* answers `503 Service Unavailable` with a `Retry-After` header, so search engines keep your rankings and come back later. *Coming Soon* answers `200` for a site that hasn't launched yet.
+- **Nothing gets indexed while the gate is on.** Bouncer serves a strict `robots.txt` (`Disallow: /`), sends `X-Robots-Tag: noindex, nofollow` and adds a `noindex` meta tag.
+- **Out of the way when it's off.** `robots.txt` and SEO go back to WordPress or your SEO plugin.
+
+### Show the site before launch
+- **Named preview links.** One link per client or team, each with its own expiry (1 hour to 30 days, or none), open count and last-opened time. Deactivate a link to cut access but keep the record, or delete it.
+- **IP allowlist** for your office or agency network, with a one-click "add my IP".
+- **Logged-in users always see the live site.**
+
+### Easy to run
+- **One-click on/off** from the admin bar, with the current status always visible.
+- **Your own words on the page.** Heading, main text, an optional second text block (great for bilingual sites) and a contact email that spam harvesters can't scrape.
+- **Light and dark.** The page follows the visitor's system setting, with an optional toggle and an optional button to another website.
+- **A clear settings page** in four tabs: Status, Access, Content, Display.
+- **Lightweight.** Three PHP files. No account, no tracking, no upsells.
+
+## Screenshots
+
+<p align="center"><img src=".github/screenshot-coming-soon.jpg" alt="The Bouncer page in Coming Soon mode: a large COMING SOON heading, a one-line message and an HTTP 200 status note" width="800"><br><em>What visitors see (Coming Soon mode)</em></p>
+
+<p align="center"><img src=".github/screenshot-settings.jpg" alt="Bouncer settings page on the Content tab: status notice, four tabs, heading, main and secondary text and contact email fields" width="600"><br><em>Settings → Bouncer, Content tab</em></p>
 
 ## Requirements
 
