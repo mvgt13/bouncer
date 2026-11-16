@@ -1,12 +1,14 @@
-# Bouncer
+<h1 align="center"><img src=".github/logo.png" alt="Bouncer" width="366"></h1>
 
-Maintenance mode and coming soon pages for WordPress, done the way search engines expect.
+<p align="center">Maintenance mode and coming soon pages for WordPress, done the way search engines expect.</p>
 
-![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)
-![WordPress 6.6+](https://img.shields.io/badge/WordPress-6.6%2B-21759b)
-![PHP 8.1+](https://img.shields.io/badge/PHP-8.1%2B-777bb4)
+<p align="center">
+  <img src="https://img.shields.io/badge/license-GPL--2.0--or--later-blue" alt="License: GPL v2 or later">
+  <img src="https://img.shields.io/badge/WordPress-6.6%2B-21759b" alt="WordPress 6.6+">
+  <img src="https://img.shields.io/badge/PHP-8.1%2B-777bb4" alt="PHP 8.1+">
+</p>
 
-<!-- Screenshots: settings page and the visitor-facing page. Add images to /.github/ and link them here. -->
+<!-- Screenshots: settings page and the visitor-facing page. Add images to .github/ and link them here. -->
 
 ## Why Bouncer
 
