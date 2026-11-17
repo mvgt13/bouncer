@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.2]
+
+### Fixed
+
+- Mail-provider delivery webhooks work again on a gated site. 2.7.0's REST gate answered them with 401, so Mailjet flagged `staging.voget.co`'s WP Mail SMTP webhook as failing. Requests to `wp-mail-smtp/v1/webhooks/…` now pass the gate (WP Mail SMTP Pro registers only the active mailer's route and validates it itself). Everything else under `/wp-json/` stays closed to visitors. More route prefixes can be added with the `bouncer_open_rest_routes` filter.
+
 ## [2.7.1]
 
 ### Fixed

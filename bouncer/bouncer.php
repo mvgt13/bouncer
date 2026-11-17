@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Bouncer
-Version: 2.7.1
+Version: 2.7.2
 Plugin URI: https://github.com/mvgt13/bouncer
 Update URI: false
 Author: VOGET.CO
@@ -44,7 +44,7 @@ if (!class_exists('BOUNCER')) {
 
     class BOUNCER
     {
-        const VERSION = '2.7.1';
+        const VERSION = '2.7.2';
 
         private string $plugin_version = self::VERSION;
         private string $plugin_url  = '';
@@ -110,6 +110,7 @@ if (!class_exists('BOUNCER')) {
         {
             if (!empty($result)) return $result;   // already authenticated (true) or already an error
             if (!get_option('bouncer_enabled') || get_option('bouncer_allow_rest')) return $result;
+            if ($this->is_open_rest_route()) return $result;
             if (is_user_logged_in() || $this->is_bypass_allowed()) return $result;
 
             return new WP_Error(
@@ -117,6 +118,27 @@ if (!class_exists('BOUNCER')) {
                 __('This site is not public yet. The REST API is available to logged-in users only.', 'bouncer'),
                 array('status' => 401)
             );
+        }
+
+        // Routes that anonymous senders must still reach while gated: mail-provider delivery
+        // webhooks. WP Mail SMTP Pro registers POST wp-mail-smtp/v1/webhooks/<mailer> for the
+        // active mailer only, with its own validate() callback. A gated site that sends mail
+        // needs them, or the provider marks the endpoint dead and stops sending events.
+        // Matched against the requested route (covers /wp-json/… and ?rest_route=…), as a
+        // case-sensitive prefix, so anything else under /wp-json/ stays closed.
+        // Extend with the bouncer_open_rest_routes filter (list of route prefixes).
+        function is_open_rest_route()
+        {
+            $wp    = $GLOBALS['wp'] ?? null;
+            $route = is_object($wp) ? ($wp->query_vars['rest_route'] ?? '') : '';
+            if (!is_string($route) || $route === '') return false;
+            $route = '/' . ltrim($route, '/');
+
+            $prefixes = (array) apply_filters('bouncer_open_rest_routes', array('/wp-mail-smtp/v1/webhooks/'));
+            foreach ($prefixes as $prefix) {
+                if (is_string($prefix) && $prefix !== '' && str_starts_with($route, $prefix)) return true;
+            }
+            return false;
         }
 
         // Don't advertise the (closed) XML-RPC endpoint while gated.

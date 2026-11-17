@@ -67,7 +67,7 @@ The settings page has four tabs: **Status**, **Access**, **Content** and **Displ
 | New Link Duration | How long newly created links stay active: 1h, 6h, 24h, 3d, 7d, 30d or no expiry. Does not affect existing links. |
 | Preview Links | Table of all named preview links. Create, copy, deactivate or delete individual links. |
 | Allowed IPs | One IP per line. These visitors always see the live site, whatever the Bouncer status. The tab shows your current IP with a button to add it. If that IP is a private address (a proxy or container gateway), it shows a warning instead of the button. |
-| APIs While Closed | While Bouncer is on, the REST API answers 401 to visitors who aren't logged in and XML-RPC answers 403. Logged-in users, application passwords, allowed IPs and preview links still reach the REST API. Tick "Keep the REST API open for everyone" or "Keep XML-RPC open" only if something needs that API while the site is closed (Jetpack, the WordPress mobile app, an outside service). |
+| APIs While Closed | While Bouncer is on, the REST API answers 401 to visitors who aren't logged in and XML-RPC answers 403. Logged-in users, application passwords, allowed IPs and preview links still reach the REST API, and so do mail-provider delivery webhooks (`wp-mail-smtp/v1/webhooks/…`; more via the `bouncer_open_rest_routes` filter). Tick "Keep the REST API open for everyone" or "Keep XML-RPC open" only if something needs that API while the site is closed (Jetpack, the WordPress mobile app, an outside service). |
 
 **Link status**
 
